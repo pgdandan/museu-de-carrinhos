@@ -1,0 +1,9 @@
+{
+  "name": "museu-de-carrinhos",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "pg": "^8.13.1"
+  }
+}
