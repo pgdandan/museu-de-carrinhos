@@ -37,6 +37,9 @@ async function garanteTabela() {
     );
     create index if not exists idx_carrinhos_categoria on carrinhos (categoria);
     create index if not exists idx_carrinhos_modelo on carrinhos (lower(modelo));
+    alter table carrinhos add column if not exists foto_lateral text;
+    alter table carrinhos add column if not exists foto_traseira text;
+    alter table carrinhos add column if not exists foto_base text;
   `);
   tabelaPronta = true;
 }
@@ -58,6 +61,9 @@ function paraSite(l) {
     curio: l.descricao || "",
     nota: l.nota_do_curador || "",
     foto: l.foto || null,
+    fotoLateral: l.foto_lateral || null,
+    fotoTraseira: l.foto_traseira || null,
+    fotoBase: l.foto_base || null,
     criadoEm: l.criado_em ? new Date(l.criado_em).toISOString().slice(0, 10) : null,
   };
 }
@@ -98,8 +104,9 @@ export default async function handler(req, res) {
           await cliente.query(
             `insert into carrinhos
                (id, modelo, categoria, ano, pais, motor, potencia_cv, velocidade_maxima_kmh,
-                zero_a_cem, tracao, escala, descricao, nota_do_curador, foto, criado_em)
-             values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,coalesce($15::date, current_date))
+                zero_a_cem, tracao, escala, descricao, nota_do_curador, foto, foto_lateral,
+                foto_traseira, foto_base, criado_em)
+             values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,coalesce($18::date, current_date))
              on conflict (id) do update set
                modelo = excluded.modelo,
                categoria = excluded.categoria,
@@ -114,6 +121,9 @@ export default async function handler(req, res) {
                descricao = excluded.descricao,
                nota_do_curador = excluded.nota_do_curador,
                foto = coalesce(excluded.foto, carrinhos.foto),
+               foto_lateral = coalesce(excluded.foto_lateral, carrinhos.foto_lateral),
+               foto_traseira = coalesce(excluded.foto_traseira, carrinhos.foto_traseira),
+               foto_base = coalesce(excluded.foto_base, carrinhos.foto_base),
                atualizado_em = now()`,
             [
               texto(p.id, 60) || "c" + Date.now() + Math.floor(Math.random() * 999),
@@ -130,6 +140,9 @@ export default async function handler(req, res) {
               texto(p.curio, 1200),
               texto(p.nota, 600),
               texto(p.foto, 4_000_000),
+              texto(p.fotoLateral, 4_000_000),
+              texto(p.fotoTraseira, 4_000_000),
+              texto(p.fotoBase, 4_000_000),
               texto(p.criadoEm, 10),
             ]
           );

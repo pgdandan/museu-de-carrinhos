@@ -16,7 +16,10 @@ create table if not exists carrinhos (
   escala                text default '1:64',
   descricao             text,
   nota_do_curador       text,
-  foto                  text,          -- imagem em base64 (data:image/jpeg;base64,...)
+  foto                  text,          -- frente, em base64 (data:image/jpeg;base64,...)
+  foto_lateral          text,
+  foto_traseira         text,
+  foto_base             text,          -- foto da base/plaqueta (opcional)
   criado_em             date not null default current_date,
   atualizado_em         timestamptz not null default now()
 );

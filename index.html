@@ -198,6 +198,10 @@ tbody tr:hover td{background:rgba(255,255,255,.03)}
 .modal-imagem img{width:100%;height:100%;object-fit:cover}
 .modal-imagem svg{width:76%;height:76%}
 .modal-imagem .cod{position:absolute;z-index:2;bottom:20px;left:22px;color:var(--cobre-claro);font-family:var(--mono);font-size:10px;letter-spacing:.14em}
+.modal-miniaturas{position:absolute;z-index:2;right:16px;bottom:16px;display:flex;gap:7px}
+.modal-miniaturas .miniatura{width:44px;height:44px;padding:0;border:1.5px solid rgba(240,237,227,.35);background:#060606;overflow:hidden;opacity:.72}
+.modal-miniaturas .miniatura img{width:100%;height:100%;object-fit:cover}
+.modal-miniaturas .miniatura--ativa{border-color:var(--cobre-claro);opacity:1}
 .modal-conteudo{padding:clamp(37px,5vw,67px) clamp(30px,4vw,53px)}
 .modal-conteudo h2{margin:0;font-family:var(--disp);font-size:clamp(42px,4.4vw,63px);font-weight:700;line-height:.84;letter-spacing:-.045em;text-transform:uppercase}
 .modal-subtitulo{margin:13px 0 0;color:#9C9990;font-family:var(--mono);font-size:9px;letter-spacing:.07em;text-transform:uppercase}
@@ -453,15 +457,29 @@ html.largo #palco{position:absolute;top:0;left:0;width:1600px;transform:scale(va
     <h2>Catalogar peça</h2>
     <p class="dica">Fotografe a miniatura de perfil. A IA identifica o carro e preenche a ficha sozinha — você só confere e grava.</p>
 
-    <label for="f-foto">Foto da miniatura</label>
+    <label for="f-foto">Frente</label>
     <div class="foto-alvo" id="f-alvo">Toque para fotografar ou escolher da galeria</div>
     <input type="file" id="f-foto" accept="image/*" style="position:absolute;opacity:0;width:1px;height:1px">
+    <button class="botao-ia sec" id="btn-gerar-frente" disabled>✨ Gerar foto profissional</button>
     <div class="ia-linha">
       <button class="botao-ia" id="btn-ia" disabled>Identificar com IA</button>
-      <button class="botao-ia sec" id="btn-base" disabled>+ foto da base</button>
     </div>
-    <input type="file" id="f-base" accept="image/*" style="position:absolute;opacity:0;width:1px;height:1px">
     <p class="ia-status" id="ia-status"></p>
+
+    <label for="f-lateral">Lateral</label>
+    <div class="foto-alvo" id="f-alvo-lateral">Toque para fotografar ou escolher da galeria</div>
+    <input type="file" id="f-lateral" accept="image/*" style="position:absolute;opacity:0;width:1px;height:1px">
+    <button class="botao-ia sec" id="btn-gerar-lateral" disabled>✨ Gerar foto profissional</button>
+
+    <label for="f-traseira">Traseira</label>
+    <div class="foto-alvo" id="f-alvo-traseira">Toque para fotografar ou escolher da galeria</div>
+    <input type="file" id="f-traseira" accept="image/*" style="position:absolute;opacity:0;width:1px;height:1px">
+    <button class="botao-ia sec" id="btn-gerar-traseira" disabled>✨ Gerar foto profissional</button>
+
+    <label for="f-base">Base (opcional — ajuda a IA a identificar)</label>
+    <div class="foto-alvo" id="f-alvo-base">Toque para fotografar ou escolher da galeria</div>
+    <input type="file" id="f-base" accept="image/*" style="position:absolute;opacity:0;width:1px;height:1px">
+    <button class="botao-ia sec" id="btn-gerar-base" disabled>✨ Gerar foto profissional</button>
 
     <label for="f-nome">Modelo</label>
     <input id="f-nome" placeholder="Nissan Skyline RS Turbo">
@@ -554,7 +572,7 @@ const DEMO = [
    curio:"Carroceria de alumínio. Projeto que ficou quase igual por mais de 30 anos.",nota:"Sobe na pedra.",demo:1}
 ];
 
-let acervo = [], fotoTmp = null;
+let acervo = [];
 let filtros = {cat:"todos", termo:"", ordem:"recente"};
 
 function catDe(id){ for(var i=0;i<CATS.length;i++) if(CATS[i].id===id) return CATS[i]; return CATS[8]; }
@@ -729,10 +747,18 @@ function abreFicha(id){
   const itens = visiveis();
   for(var i=0;i<itens.length;i++) if(itens[i].id===id){ c=itens[i]; pos=i; }
   if(!c) return;
+  const angulos = [
+    {rot:"Frente", src:c.foto}, {rot:"Lateral", src:c.fotoLateral},
+    {rot:"Traseira", src:c.fotoTraseira}, {rot:"Base", src:c.fotoBase}
+  ].filter(function(a){ return !!a.src; });
   const f = document.getElementById("ficha");
   f.innerHTML = '<section class="modal-ficha">'
     + '<button class="fechar-modal" id="fechar-ficha" aria-label="Fechar ficha">✕</button>'
-    + '<div class="modal-imagem">'+arte(c)+'<span class="cod">'+codigo(c,pos)+'</span></div>'
+    + '<div class="modal-imagem" id="modal-imagem">'+arte(c)+'<span class="cod">'+codigo(c,pos)+'</span>'
+      + (angulos.length>1 ? '<div class="modal-miniaturas">' + angulos.map(function(a,i){
+          return '<button class="miniatura'+(i===0?' miniatura--ativa':'')+'" data-src="'+esc(a.src)+'" aria-label="'+a.rot+'"><img src="'+a.src+'" alt="'+a.rot+'"></button>';
+        }).join("") + '</div>' : '')
+    + '</div>'
     + '<div class="modal-conteudo">'
       + '<p class="eyebrow">Ficha da peça · '+esc(catDe(c.cat).nome)+'</p>'
       + '<h2>'+esc(c.nome)+'</h2>'
@@ -750,6 +776,13 @@ function abreFicha(id){
     + '</div></section>';
   f.classList.add("aberto"); f.setAttribute("aria-hidden","false");
   document.getElementById("fechar-ficha").onclick = fechaFicha;
+  f.querySelectorAll(".miniatura").forEach(function(m){
+    m.onclick = function(){
+      document.querySelector("#modal-imagem img").setAttribute("src", m.dataset.src);
+      f.querySelectorAll(".miniatura").forEach(function(x){ x.classList.remove("miniatura--ativa"); });
+      m.classList.add("miniatura--ativa");
+    };
+  });
   document.getElementById("remover").onclick = async function(){
     this.textContent = "Removendo…";
     try{ await apagar(id); fechaFicha(); pinta(); }
@@ -1039,51 +1072,83 @@ function preenche(f){
   statusIA((f.modelo||"Peça") + " · " + aviso);
 }
 
+/* ---------- slots de foto (frente, lateral, traseira, base) ---------- */
+const fotosSlots = {};
+function configuraFotoSlot(slot, idAlvo, idInput, idBtnGerar, aoCarregar){
+  const alvo = document.getElementById(idAlvo);
+  const input = document.getElementById(idInput);
+  const btnGerar = document.getElementById(idBtnGerar);
+  alvo.onclick = function(){ input.click(); };
+  input.onchange = function(e){
+    const arq = e.target.files[0]; if(!arq) return;
+    const leitor = new FileReader();
+    leitor.onload = function(){
+      const img = new Image();
+      img.onload = function(){
+        fotosSlots[slot] = { tratada: estudio(img), original: comprime(img, 1100, 0.84) };
+        alvo.innerHTML = '<img src="'+fotosSlots[slot].tratada+'" alt="prévia da foto">';
+        if(btnGerar) btnGerar.disabled = false;
+        if(aoCarregar) aoCarregar();
+      };
+      img.src = leitor.result;
+    };
+    leitor.readAsDataURL(arq);
+    e.target.value = "";
+  };
+  if(btnGerar) btnGerar.onclick = async function(){
+    const s = fotosSlots[slot]; if(!s) return;
+    const rotulo = btnGerar.textContent;
+    btnGerar.disabled = true; btnGerar.textContent = "Gerando…";
+    try{
+      const r = await fetch("/api/gerar-foto", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ imagem: so64(s.original) })
+      });
+      const d = await r.json().catch(function(){ return {}; });
+      if(!r.ok) throw new Error(d.erro || "Não consegui gerar a foto.");
+      s.tratada = "data:image/png;base64," + d.imagem;
+      alvo.innerHTML = '<img src="'+s.tratada+'" alt="prévia tratada pela IA">';
+    }catch(err){
+      statusIA(err.message, true);
+    }
+    btnGerar.disabled = false; btnGerar.textContent = rotulo;
+  };
+}
 document.getElementById("btn-ia").onclick = identificar;
-document.getElementById("btn-base").onclick = function(){ document.getElementById("f-base").click(); };
-document.getElementById("f-base").onchange = function(e){
-  const arq = e.target.files[0]; if(!arq) return;
-  const leitor = new FileReader();
-  leitor.onload = function(){
-    const img = new Image();
-    img.onload = function(){
-      fotoBase = comprime(img, 1100, 0.84);
-      statusIA("Base anexada. Analisando de novo…", false, true);
-      identificar();
-    };
-    img.src = leitor.result;
-  };
-  leitor.readAsDataURL(arq);
-  e.target.value = "";
-};
+configuraFotoSlot("frente", "f-alvo", "f-foto", "btn-gerar-frente", function(){
+  fotoOriginal = fotosSlots.frente.original;
+  document.getElementById("btn-ia").disabled = false;
+  identificar();
+});
+configuraFotoSlot("lateral", "f-alvo-lateral", "f-lateral", "btn-gerar-lateral");
+configuraFotoSlot("traseira", "f-alvo-traseira", "f-traseira", "btn-gerar-traseira");
+configuraFotoSlot("base", "f-alvo-base", "f-base", "btn-gerar-base", function(){
+  fotoBase = fotosSlots.base.original;
+  statusIA("Base anexada. Analisando de novo…", false, true);
+  identificar();
+});
 
-document.getElementById("f-foto").onchange = function(e){
-  const arq = e.target.files[0]; if(!arq) return;
-  const leitor = new FileReader();
-  leitor.onload = function(){
-    const img = new Image();
-    img.onload = function(){
-      fotoTmp = estudio(img);
-      fotoOriginal = comprime(img, 1100, 0.84);
-      document.getElementById("f-alvo").innerHTML = '<img src="'+fotoTmp+'" alt="prévia da foto">';
-      document.getElementById("btn-ia").disabled = false;
-      document.getElementById("btn-base").disabled = false;
-      identificar();
-    };
-    img.src = leitor.result;
-  };
-  leitor.readAsDataURL(arq);
-};
 document.getElementById("f-salvar").onclick = async function(){
   function v(id){ return document.getElementById(id).value.trim(); }
-  if(!v("f-nome")){ document.getElementById("f-erro").style.display="block"; return; }
+  function erro(msg){
+    const el = document.getElementById("f-erro");
+    el.textContent = msg; el.style.display = "block";
+  }
+  if(!v("f-nome")){ erro("Preencha o Modelo antes de salvar."); return; }
+  if(!fotosSlots.frente || !fotosSlots.lateral || !fotosSlots.traseira){
+    erro("Adicione as fotos de frente, lateral e traseira antes de salvar."); return;
+  }
   const bt = this;
   bt.disabled = true; bt.textContent = "Gravando…";
   try{
     await gravar({
       nome:v("f-nome"), cat:v("f-cat"), ano:v("f-ano"), pais:v("f-pais"), motor:v("f-motor"),
       cv:v("f-cv"), vel:v("f-vel"), zc:v("f-zc"), tracao:v("f-tracao"), escala:v("f-escala")||"1:64",
-      curio:v("f-curio"), nota:v("f-nota"), foto:fotoTmp
+      curio:v("f-curio"), nota:v("f-nota"),
+      foto:fotosSlots.frente.tratada,
+      fotoLateral:fotosSlots.lateral.tratada,
+      fotoTraseira:fotosSlots.traseira.tratada,
+      fotoBase:fotosSlots.base ? fotosSlots.base.tratada : null
     });
     fechaForm(); mostraArea("acervo"); pinta();
   }catch(err){
@@ -1096,12 +1161,18 @@ function fechaForm(){
   ["f-nome","f-ano","f-pais","f-motor","f-cv","f-vel","f-zc","f-tracao","f-curio","f-nota"]
     .forEach(function(id){ document.getElementById(id).value=""; });
   document.getElementById("f-escala").value = "1:64";
+  document.getElementById("f-erro").textContent = "Preencha o Modelo antes de salvar.";
   document.getElementById("f-erro").style.display="none";
-  document.getElementById("f-alvo").innerHTML = "Toque para fotografar ou escolher da galeria";
+  [["f-alvo","btn-gerar-frente"],["f-alvo-lateral","btn-gerar-lateral"],
+   ["f-alvo-traseira","btn-gerar-traseira"],["f-alvo-base","btn-gerar-base"]]
+    .forEach(function(par){
+      document.getElementById(par[0]).innerHTML = "Toque para fotografar ou escolher da galeria";
+      document.getElementById(par[1]).disabled = true;
+    });
   document.getElementById("btn-ia").disabled = true;
-  document.getElementById("btn-base").disabled = true;
   statusIA("");
-  fotoTmp = null; fotoOriginal = null; fotoBase = null;
+  Object.keys(fotosSlots).forEach(function(k){ delete fotosSlots[k]; });
+  fotoOriginal = null; fotoBase = null;
 }
 
 /* ---------- modo 16:9 ---------- */
