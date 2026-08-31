@@ -36,6 +36,8 @@ export default async function handler(req, res) {
     forma.append("prompt", PROMPT);
     forma.append("size", "1024x1024");
     forma.append("quality", "medium");
+    forma.append("output_format", "jpeg");
+    forma.append("output_compression", "80");
     forma.append("image", new Blob([bytes], { type: "image/jpeg" }), "miniatura.jpg");
 
     const resposta = await fetch("https://api.openai.com/v1/images/edits", {

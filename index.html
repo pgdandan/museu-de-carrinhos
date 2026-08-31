@@ -592,11 +592,23 @@ function codigo(c, i){ return catDe(c.cat).sigla + "-" + ("00"+(i+1)).slice(-3);
 const API = "/api/pecas";
 let falhaRede = "";
 
+async function buscaComLimite(url, opcoes, ms){
+  const ctrl = new AbortController();
+  const t = setTimeout(function(){ ctrl.abort(); }, ms);
+  try{
+    return await fetch(url, Object.assign({}, opcoes, {signal: ctrl.signal}));
+  }catch(err){
+    if(err.name === "AbortError") throw new Error("Demorou demais pra responder. Tente de novo com uma conexão melhor.");
+    throw err;
+  }finally{
+    clearTimeout(t);
+  }
+}
 async function api(metodo, corpo, query){
   const cab = {"Content-Type":"application/json"};
-  const r = await fetch(API + (query||""), {
+  const r = await buscaComLimite(API + (query||""), {
     method: metodo, headers: cab, body: corpo ? JSON.stringify(corpo) : undefined
-  });
+  }, 25000);
   if(!r.ok){
     let d = {}; try{ d = await r.json(); }catch(e){}
     throw new Error(d.erro || ("O acervo respondeu com erro " + r.status + "."));
@@ -1100,13 +1112,13 @@ function configuraFotoSlot(slot, idAlvo, idInput, idBtnGerar, aoCarregar){
     const rotulo = btnGerar.textContent;
     btnGerar.disabled = true; btnGerar.textContent = "Gerando…";
     try{
-      const r = await fetch("/api/gerar-foto", {
+      const r = await buscaComLimite("/api/gerar-foto", {
         method:"POST", headers:{"Content-Type":"application/json"},
         body: JSON.stringify({ imagem: so64(s.original) })
-      });
+      }, 60000);
       const d = await r.json().catch(function(){ return {}; });
       if(!r.ok) throw new Error(d.erro || "Não consegui gerar a foto.");
-      s.tratada = "data:image/png;base64," + d.imagem;
+      s.tratada = "data:image/jpeg;base64," + d.imagem;
       alvo.innerHTML = '<img src="'+s.tratada+'" alt="prévia tratada pela IA">';
     }catch(err){
       statusIA(err.message, true);
