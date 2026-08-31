@@ -1149,7 +1149,6 @@ async function iniciar(){
     luzes.forEach(function(l){ l.classList.remove("on"); });
     document.getElementById("abertura").classList.add("fora");
   }, 200+5*t+(rapido?60:400));
-  if(window.innerWidth < 900) setTimeout(function(){ modoLargo(true); }, 60);
 }
 iniciar();
 </script>
