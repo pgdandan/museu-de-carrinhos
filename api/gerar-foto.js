@@ -32,9 +32,10 @@ export default async function handler(req, res) {
 
     const bytes = Buffer.from(imagem, "base64");
     const forma = new FormData();
-    forma.append("model", "gpt-image-1");
+    forma.append("model", "gpt-image-2");
     forma.append("prompt", PROMPT);
     forma.append("size", "1024x1024");
+    forma.append("quality", "medium");
     forma.append("image", new Blob([bytes], { type: "image/jpeg" }), "miniatura.jpg");
 
     const resposta = await fetch("https://api.openai.com/v1/images/edits", {
