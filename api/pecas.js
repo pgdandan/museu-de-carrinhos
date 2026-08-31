@@ -69,13 +69,6 @@ function texto(v, limite) {
   return limite && s.length > limite ? s.slice(0, limite) : s;
 }
 
-function autorizado(req) {
-  const esperada = process.env.CHAVE_CURADOR;
-  if (!esperada) return false;
-  const recebida = req.headers["x-curador"];
-  return typeof recebida === "string" && recebida === esperada;
-}
-
 export const config = { api: { bodyParser: { sizeLimit: "12mb" } } };
 
 export default async function handler(req, res) {
@@ -88,12 +81,6 @@ export default async function handler(req, res) {
       );
       res.setHeader("Cache-Control", "no-store");
       return res.status(200).json({ pecas: rows.map(paraSite) });
-    }
-
-    if (req.method === "POST" || req.method === "DELETE") {
-      if (!autorizado(req)) {
-        return res.status(401).json({ erro: "Chave do curador não confere." });
-      }
     }
 
     if (req.method === "POST") {

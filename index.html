@@ -487,7 +487,7 @@ html.largo #palco{position:absolute;top:0;left:0;width:1600px;transform:scale(va
     <textarea id="f-curio" placeholder="O que faz essa peça valer o lugar na vitrine."></textarea>
     <label for="f-nota">Nota do curador</label>
     <textarea id="f-nota" placeholder="A frase do seu filho sobre esse carrinho."></textarea>
-    <p class="erro" id="f-erro">Dê um nome à peça antes de salvar.</p>
+    <p class="erro" id="f-erro">Preencha o Modelo antes de salvar.</p>
     <div class="acoes">
       <button class="cancelar" id="f-cancelar">Cancelar</button>
       <button class="salvar" id="f-salvar">Gravar no acervo</button>
@@ -574,29 +574,11 @@ function codigo(c, i){ return catDe(c.cat).sigla + "-" + ("00"+(i+1)).slice(-3);
 const API = "/api/pecas";
 let falhaRede = "";
 
-function chaveCurador(){ try{ return localStorage.getItem("museu:chave") || ""; }catch(e){ return ""; } }
-function pedeChave(forcar){
-  let c = chaveCurador();
-  if(!c || forcar){
-    c = window.prompt("Chave do curador — necessária para gravar no acervo:", "") || "";
-    if(c){ try{ localStorage.setItem("museu:chave", c); }catch(e){} }
-  }
-  return c;
-}
 async function api(metodo, corpo, query){
   const cab = {"Content-Type":"application/json"};
-  if(metodo !== "GET"){
-    const c = pedeChave();
-    if(!c) throw new Error("Sem a chave do curador não dá para gravar.");
-    cab["x-curador"] = c;
-  }
   const r = await fetch(API + (query||""), {
     method: metodo, headers: cab, body: corpo ? JSON.stringify(corpo) : undefined
   });
-  if(r.status === 401){
-    try{ localStorage.removeItem("museu:chave"); }catch(e){}
-    throw new Error("Chave do curador não confere.");
-  }
   if(!r.ok){
     let d = {}; try{ d = await r.json(); }catch(e){}
     throw new Error(d.erro || ("O acervo respondeu com erro " + r.status + "."));
