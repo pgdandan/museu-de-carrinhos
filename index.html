@@ -111,7 +111,7 @@ main{margin-left:306px;overflow:hidden}
 .controles{display:flex;align-items:center;justify-content:space-between;gap:28px;flex-wrap:wrap;max-width:1350px;margin:61px 0 37px;padding-bottom:17px;border-bottom:1px solid var(--linha)}
 .campo-busca{display:flex;align-items:center;gap:11px;min-width:228px;border-bottom:1px solid #5B5851;color:var(--cobre-claro)}
 .campo-busca svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2}
-.campo-busca input{width:100%;padding:8px 0 9px;border:0;outline:0;background:transparent;color:var(--marfim);font-size:12px}
+.campo-busca input{width:100%;padding:8px 0 9px;border:0;outline:0;background:transparent;color:var(--marfim);font-size:16px}
 .campo-busca input::placeholder{color:#74716B}
 .filtros{display:flex;align-items:center;gap:7px;overflow-x:auto;scrollbar-width:none}
 .filtros::-webkit-scrollbar{display:none}
@@ -221,7 +221,7 @@ tbody tr:hover td{background:rgba(255,255,255,.03)}
 .folha h2{margin:0 0 6px;font-family:var(--disp);font-size:38px;text-transform:uppercase;letter-spacing:-.03em}
 .folha .dica{margin:0 0 22px;color:#AAA79F;font-size:13px}
 .folha label{display:block;margin:18px 0 7px;font-family:var(--mono);font-size:8px;letter-spacing:.16em;text-transform:uppercase;color:var(--cinza)}
-.folha input,.folha select,.folha textarea{width:100%;border:0;border-bottom:1px solid var(--linha);background:transparent;padding:9px 0;font-size:14px;color:var(--marfim)}
+.folha input,.folha select,.folha textarea{width:100%;border:0;border-bottom:1px solid var(--linha);background:transparent;padding:9px 0;font-size:16px;color:var(--marfim)}
 .folha textarea{border:1px solid var(--linha);padding:11px;min-height:62px;resize:vertical;font-size:13px}
 .folha input:focus,.folha select:focus,.folha textarea:focus{outline:none;border-color:var(--cobre)}
 .folha option{background:#111}
@@ -299,6 +299,46 @@ tbody tr:hover td{background:rgba(255,255,255,.03)}
   html:not(.largo) .modal-imagem{min-height:260px;max-height:37dvh}
   html:not(.largo) .modal-conteudo{padding:33px 25px 39px}
   html:not(.largo) .folha{max-height:92dvh;padding:30px 24px 34px}
+
+  /* fontes e áreas de toque maiores no celular */
+  html:not(.largo) .trilho-resumo{font-size:14px}
+  html:not(.largo) .nav-item{padding:14px 8px;font-size:14px}
+  html:not(.largo) .nav-item .seta{opacity:1}
+  html:not(.largo) .trilho-metricas strong{font-size:26px}
+  html:not(.largo) .trilho-metricas span{font-size:9px}
+  html:not(.largo) .trilho-rodape{font-size:11px}
+  html:not(.largo) .hero-descricao{font-size:16px}
+  html:not(.largo) .botao-cobre{font-size:12px;padding:16px 0}
+  html:not(.largo) .acervo-intro{font-size:15px}
+  html:not(.largo) .campo-busca input{font-size:16px}
+  html:not(.largo) .filtro{padding:11px 15px;font-size:11px}
+  html:not(.largo) .ordenar,html:not(.largo) .ordenar select{font-size:11px}
+  html:not(.largo) .cartao-titulo p{font-size:10px}
+  html:not(.largo) .cartao-titulo .sub{font-size:11px}
+  html:not(.largo) .cartao-descricao{font-size:14px}
+  html:not(.largo) .cartao-dados dt{font-size:10px}
+  html:not(.largo) .cartao-dados dd{font-size:20px}
+  html:not(.largo) .ver-ficha{font-size:11px;padding:6px 0}
+  html:not(.largo) .estado-vazio p{font-size:15px}
+  html:not(.largo) .estado-vazio button{padding:13px 18px;font-size:11px}
+  html:not(.largo) .modal-subtitulo{font-size:11px}
+  html:not(.largo) .modal-descricao{font-size:15px}
+  html:not(.largo) .ficha-dado span{font-size:9px}
+  html:not(.largo) .ficha-dado strong{font-size:22px}
+  html:not(.largo) .nota-curador{font-size:15px}
+  html:not(.largo) .remover{padding:16px;font-size:11px}
+  html:not(.largo) .fechar-modal{width:42px;height:42px;font-size:17px}
+  html:not(.largo) .folha .dica{font-size:15px}
+  html:not(.largo) .folha label{font-size:11px;margin:22px 0 9px}
+  html:not(.largo) .folha textarea{font-size:15px}
+  html:not(.largo) .foto-alvo{font-size:11px}
+  html:not(.largo) .ia-linha button,html:not(.largo) .botao-ia{padding:15px 14px;font-size:11px}
+  html:not(.largo) .ia-status{font-size:11px}
+  html:not(.largo) .erro{font-size:14px}
+  html:not(.largo) .acoes button{padding:18px;font-size:12px}
+  html:not(.largo) .rodape p{font-size:13px}
+  html:not(.largo) .rodape a{font-size:10px}
+  html:not(.largo) .modal-miniaturas .miniatura{width:52px;height:52px}
 }
 /* ---------- MODO 16:9 ---------- */
 #palco{transform-origin:0 0}
