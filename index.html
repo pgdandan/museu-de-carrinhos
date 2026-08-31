@@ -212,7 +212,10 @@ tbody tr:hover td{background:rgba(255,255,255,.03)}
 .ficha-dado strong{display:block;margin-top:6px;font-family:var(--disp);font-size:20px;font-weight:600;letter-spacing:.015em}
 .nota-curador{margin-top:26px;padding:17px 18px;border-left:2px solid var(--cobre);background:rgba(184,108,66,.07);font-size:13.5px;line-height:1.7;color:#CFCCC4}
 .nota-curador span{display:block;margin-bottom:8px;font-family:var(--mono);font-size:8px;letter-spacing:.18em;text-transform:uppercase;color:var(--cobre-claro)}
-.remover{margin-top:28px;width:100%;border:1px solid var(--linha);padding:13px;font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--cinza)}
+.ficha-acoes{display:flex;gap:10px;margin-top:28px}
+.ficha-acoes button{flex:1;border:1px solid var(--linha);padding:13px;font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase}
+.editar{color:var(--cobre-claro);border-color:var(--cobre)}
+.remover{color:var(--cinza)}
 .remover:hover{border-color:var(--cobre);color:var(--marfim)}
 @keyframes fundo-in{from{opacity:0}}
 @keyframes ficha-in{from{opacity:0;transform:translateY(16px) scale(.98)}}
@@ -326,7 +329,7 @@ tbody tr:hover td{background:rgba(255,255,255,.03)}
   html:not(.largo) .ficha-dado span{font-size:9px}
   html:not(.largo) .ficha-dado strong{font-size:22px}
   html:not(.largo) .nota-curador{font-size:15px}
-  html:not(.largo) .remover{padding:16px;font-size:11px}
+  html:not(.largo) .ficha-acoes button{padding:16px;font-size:11px}
   html:not(.largo) .fechar-modal{width:42px;height:42px;font-size:17px}
   html:not(.largo) .folha .dica{font-size:15px}
   html:not(.largo) .folha label{font-size:11px;margin:22px 0 9px}
@@ -493,8 +496,8 @@ html.largo #palco{position:absolute;top:0;left:0;width:1600px;transform:scale(va
 
 <div class="modal-fundo" id="form" role="dialog" aria-modal="true" aria-label="Adicionar peça">
   <div class="folha">
-    <p class="eyebrow">Nova entrada de acervo</p>
-    <h2>Catalogar peça</h2>
+    <p class="eyebrow" id="f-eyebrow">Nova entrada de acervo</p>
+    <h2 id="f-titulo">Catalogar peça</h2>
     <p class="dica">Fotografe a miniatura de perfil. A IA identifica o carro e preenche a ficha sozinha — você só confere e grava.</p>
 
     <label for="f-foto">Frente</label>
@@ -824,10 +827,14 @@ function abreFicha(id){
         + dado("Tração", c.tracao||"—")
       + '</div>'
       + (c.nota?'<div class="nota-curador"><span>Nota do curador</span>'+esc(c.nota)+'</div>':'')
-      + '<button class="remover" id="remover">Remover do acervo</button>'
+      + '<div class="ficha-acoes">'
+        + '<button class="editar" id="editar">Editar peça</button>'
+        + '<button class="remover" id="remover">Remover do acervo</button>'
+      + '</div>'
     + '</div></section>';
   f.classList.add("aberto"); f.setAttribute("aria-hidden","false");
   document.getElementById("fechar-ficha").onclick = fechaFicha;
+  document.getElementById("editar").onclick = function(){ fechaFicha(); abreEdicao(c); };
   f.querySelectorAll(".miniatura").forEach(function(m){
     m.onclick = function(){
       document.querySelector("#modal-imagem img").setAttribute("src", m.dataset.src);
@@ -1126,6 +1133,7 @@ function preenche(f){
 
 /* ---------- slots de foto (frente, lateral, traseira, base) ---------- */
 const fotosSlots = {};
+let editandoId = null;
 function configuraFotoSlot(slot, idAlvo, idInput, idBtnGerar, aoCarregar){
   const alvo = document.getElementById(idAlvo);
   const input = document.getElementById(idInput);
@@ -1193,7 +1201,7 @@ document.getElementById("f-salvar").onclick = async function(){
   const bt = this;
   bt.disabled = true; bt.textContent = "Gravando…";
   try{
-    await gravar({
+    const peca = {
       nome:v("f-nome"), cat:v("f-cat"), ano:v("f-ano"), pais:v("f-pais"), motor:v("f-motor"),
       cv:v("f-cv"), vel:v("f-vel"), zc:v("f-zc"), tracao:v("f-tracao"), escala:v("f-escala")||"1:64",
       curio:v("f-curio"), nota:v("f-nota"),
@@ -1201,7 +1209,9 @@ document.getElementById("f-salvar").onclick = async function(){
       fotoLateral:fotosSlots.lateral.tratada,
       fotoTraseira:fotosSlots.traseira.tratada,
       fotoBase:fotosSlots.base ? fotosSlots.base.tratada : null
-    });
+    };
+    if(editandoId) peca.id = editandoId;
+    await gravar(peca);
     fechaForm(); mostraArea("acervo"); pinta();
   }catch(err){
     statusIA(err.message, true);
@@ -1225,6 +1235,35 @@ function fechaForm(){
   statusIA("");
   Object.keys(fotosSlots).forEach(function(k){ delete fotosSlots[k]; });
   fotoOriginal = null; fotoBase = null;
+  editandoId = null;
+  document.getElementById("f-eyebrow").textContent = "Nova entrada de acervo";
+  document.getElementById("f-titulo").textContent = "Catalogar peça";
+}
+function abreEdicao(c){
+  editandoId = c.id;
+  document.getElementById("f-eyebrow").textContent = "Atualizar entrada de acervo";
+  document.getElementById("f-titulo").textContent = "Editar peça";
+  function set(id, v){ document.getElementById(id).value = v || ""; }
+  set("f-nome", c.nome); set("f-cat", c.cat); set("f-ano", c.ano); set("f-pais", c.pais);
+  set("f-motor", c.motor); set("f-cv", c.cv); set("f-vel", c.vel); set("f-zc", c.zc);
+  set("f-tracao", c.tracao); set("f-escala", c.escala||"1:64"); set("f-curio", c.curio); set("f-nota", c.nota);
+  [["frente","f-alvo","btn-gerar-frente",c.foto],
+   ["lateral","f-alvo-lateral","btn-gerar-lateral",c.fotoLateral],
+   ["traseira","f-alvo-traseira","btn-gerar-traseira",c.fotoTraseira],
+   ["base","f-alvo-base","btn-gerar-base",c.fotoBase]
+  ].forEach(function(m){
+    const slot=m[0], src=m[3];
+    if(!src) return;
+    fotosSlots[slot] = {tratada:src, original:src};
+    document.getElementById(m[1]).innerHTML = '<img src="'+src+'" alt="prévia da foto">';
+    document.getElementById(m[2]).disabled = false;
+  });
+  fotoOriginal = c.foto || null;
+  fotoBase = c.fotoBase || null;
+  document.getElementById("btn-ia").disabled = !c.foto;
+  document.getElementById("f-erro").style.display = "none";
+  form.classList.add("aberto");
+  document.getElementById("trilho").classList.remove("trilho--aberto");
 }
 
 /* ---------- modo 16:9 ---------- */
