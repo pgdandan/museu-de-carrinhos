@@ -66,3 +66,16 @@ Vale fazer de vez em quando: banco na nuvem também merece cópia.
 
 Hospedagem e Postgres têm plano gratuito que atende com sobra nesse tamanho.
 A API da Anthropic é por uso — cada peça identificada custa frações de centavo.
+
+## Painel de eleições (extra)
+
+`eleicoes.html` (no ar em `/eleicoes`) é um painel para tela de toque que
+acompanha a apuração do 2º turno com os dados públicos do TSE
+(resultados.tse.jus.br), filtrando por estado e cidade, para Presidente e
+Governador. Atualiza sozinho a cada 30 s e mantém a tela acesa.
+
+`api/tse.js` repassa os JSON do TSE com cache de 15 s na borda — vários
+painéis abertos não sobrecarregam o TSE e o navegador não esbarra em CORS.
+Se o arquivo for aberto direto (sem servidor), o painel consulta o TSE
+sozinho. Em ⚙ dá para ajustar o código da eleição e ligar o modo
+demonstração, com dados fictícios, para testar antes do dia.
