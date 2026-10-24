@@ -77,10 +77,10 @@ body.demo .selo-demo { display: inline-block; }
 .caixa { background: var(--painel); border-radius: var(--raio); padding: 14px; min-height: 0; }
 
 /* seletor */
-.seletor { display: flex; flex-direction: column; gap: 12px; }
+.seletor { display: flex; flex-direction: column; gap: 10px; overflow: hidden; }
 .seletor h2 { margin: 0; font-size: 15px; text-transform: uppercase; letter-spacing: .06em; color: var(--suave); }
-.ufs { display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 8px; }
-.ufs button { padding: 0; font-weight: 700; font-size: 19px; }
+.ufs { display: grid; grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); gap: 6px; }
+.ufs button { padding: 0; font-weight: 700; font-size: 18px; min-height: 50px; }
 .busca { display: flex; gap: 8px; }
 .busca input {
   flex: 1; min-width: 0; font: inherit; font-size: 20px; color: var(--texto);
@@ -90,7 +90,7 @@ body.demo .selo-demo { display: inline-block; }
 .busca input:focus { border-color: var(--destaque); }
 .letras { display: flex; flex-wrap: wrap; gap: 6px; }
 .letras button { min-height: 44px; min-width: 44px; padding: 0; font-size: 17px; }
-.cidades { overflow-y: auto; flex: 1; min-height: 120px; display: flex; flex-direction: column; gap: 6px; -webkit-overflow-scrolling: touch; }
+.cidades { overflow-y: auto; flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 6px; -webkit-overflow-scrolling: touch; }
 .cidades button { text-align: left; font-size: 19px; flex-shrink: 0; }
 .vazio { color: var(--suave); padding: 12px 4px; }
 
@@ -145,6 +145,8 @@ dialog p { color: var(--suave); font-size: 15px; margin: 8px 0; }
 @media (max-width: 860px) {
   .corpo { grid-template-columns: 1fr; grid-template-rows: auto auto; overflow-y: auto; }
   .caixa { min-height: auto; }
+  .seletor { overflow: visible; }
+  .cidades { flex: none; }
   .resultado { overflow: visible; }
   .apuradas { text-align: left; }
   #horaAtual { display: none; }
