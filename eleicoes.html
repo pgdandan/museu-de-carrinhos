@@ -240,7 +240,11 @@ const TSE = "https://resultados.tse.jus.br/oficial/";
 
 // ---------- estado ----------
 const guardado = ler("painel-eleicoes", {});
-const cfg = Object.assign({ ano: 2026, fed: "", est: "", intervalo: 30, demo: false }, guardado.cfg);
+// 6258 = "Eleição Ordinária Federal - 2026 2º Turno" (ele-c.json do TSE);
+// fica de reserva caso a detecção automática não responda
+const FED_PADRAO = "6258";
+const cfg = Object.assign({ ano: 2026, fed: "", est: "", pleito: "", intervalo: 30, demo: false }, guardado.cfg);
+if (!cfg.fed && Number(cfg.ano) === 2026) cfg.fed = FED_PADRAO;
 const est = {
   cargo: guardado.cargo || "pres",
   uf: guardado.uf || null,
@@ -302,22 +306,26 @@ async function tse(caminho) {
 async function detectarEleicoes() {
   const j = await tse("comum/config/ele-c.json");
   const achadas = [];
-  (function andar(o) {
-    if (Array.isArray(o)) return o.forEach(andar);
+  (function andar(o, pleito) {
+    if (Array.isArray(o)) return o.forEach((x) => andar(x, pleito));
     if (!o || typeof o !== "object") return;
     const nm = String(o.nm || o.ds || "");
     const dt = String(o.dt || "");
     if (o.cd && /^\d{3,6}$/.test(String(o.cd)) && /elei/i.test(nm)) {
-      achadas.push({ cd: String(Number(o.cd)), nm, dt, t: String(o.t ?? o.tu ?? "") });
+      achadas.push({ cd: String(Number(o.cd)), nm, dt, t: String(o.t ?? o.tu ?? ""), pleito });
     }
-    Object.values(o).forEach(andar);
-  })(j);
+    // os pleitos (pl) agrupam as eleições do mesmo dia
+    const proprio = Array.isArray(o.e) && o.cd ? String(Number(o.cd)) : pleito;
+    Object.values(o).forEach((x) => andar(x, proprio));
+  })(j, "");
   const doAno = achadas.filter((e) => e.nm.includes(cfg.ano) || e.dt.includes(cfg.ano));
   const segundo = doAno.filter((e) => e.t === "2" || /2[ºo°]\s*turno/i.test(e.nm));
   const fed = segundo.find((e) => /federal/i.test(e.nm));
   const estd = segundo.find((e) => /estadua/i.test(e.nm));
   if (fed) cfg.fed = fed.cd;
   if (estd) cfg.est = estd.cd;
+  const pleito = (fed || estd || {}).pleito;
+  if (pleito) cfg.pleito = pleito;
   const data = (fed || estd || {}).dt;
   if (data) $("dataEleicao").textContent = "Eleição de " + data + " · TSE";
   salvar();
@@ -335,8 +343,19 @@ function caminhoResultado() {
   let pasta, arq;
   if (!est.uf) { pasta = "br"; arq = "br"; }
   else if (!est.mun) { pasta = est.uf.toLowerCase(); arq = pasta; }
-  else { pasta = est.uf.toLowerCase(); arq = pasta + pad(est.mun.cd, 5); }
-  return `ele${cfg.ano}/${ele}/dados-simplificados/${pasta}/${arq}-c${c}-e${e6}-r.json`;
+  else { pasta = est.uf.toLowerCase(); arq = pasta + pad(Number(est.mun.cd), 5); }
+  return `ele${cfg.ano}/${ele}/dados/${pasta}/${arq}-c${c}-e${e6}-u.json`;
+}
+
+// Em 2026 o TSE publica o resultado unificado "-u.json" na pasta dados/;
+// até 2024 era "-r.json" em dados-simplificados/. Tenta o novo e cai no antigo.
+async function buscarResultado(caminho) {
+  try {
+    return await tse(caminho);
+  } catch (e) {
+    if (e.message !== "nao-encontrado") throw e;
+    return await tse(caminho.replace("/dados/", "/dados-simplificados/").replace(/-u\.json$/, "-r.json"));
+  }
 }
 
 async function carregarMunicipios(uf) {
@@ -345,14 +364,27 @@ async function carregarMunicipios(uf) {
     est.municipios[uf] = demoMunicipios(uf);
     return est.municipios[uf];
   }
-  // a lista de cidades vem da eleição federal (todos os municípios votam para presidente)
+  // a lista de cidades vem da eleição federal (todos os municípios votam para presidente).
+  // Primeiro o arquivo de municípios da eleição; se não existir, a configuração
+  // das urnas do pleito, que lista os municípios do estado.
   const ele = cfg.fed || cfg.est;
-  const j = await tse(`ele${cfg.ano}/${ele}/config/mun-e${pad(ele, 6)}-cm.json`);
+  const u = uf.toLowerCase();
+  const fontes = [`ele${cfg.ano}/${ele}/config/mun-e${pad(ele, 6)}-cm.json`];
+  for (const pl of new Set([cfg.pleito, "3221", "3220"].filter(Boolean))) {
+    fontes.push(`ele${cfg.ano}/arquivo-urna/${pl}/config/${u}/${u}-p${pad(pl, 6)}-cs.json`);
+  }
+  let j, erro;
+  for (const f of fontes) {
+    try { j = await tse(f); break; } catch (e) { erro = e; }
+  }
+  if (!j) throw erro;
   const todos = {};
-  for (const a of j.abr || []) {
-    const sigla = String(a.cd || "").toUpperCase();
+  const abr = j.abr || [];
+  for (const a of abr) {
+    const sigla = abr.length === 1 && !NOME_UF[String(a.cd || "").toUpperCase()]
+      ? uf : String(a.cd || "").toUpperCase();
     if (!NOME_UF[sigla]) continue;
-    todos[sigla] = (a.mu || []).map((m) => ({ cd: String(m.cd), nm: m.nm }))
+    todos[sigla] = (a.mu || []).map((m) => ({ cd: pad(Number(m.cd), 5), nm: String(m.nm).trim() }))
       .sort((x, y) => x.nm.localeCompare(y.nm, "pt-BR"));
   }
   Object.assign(est.municipios, todos);
@@ -364,18 +396,19 @@ async function carregarMunicipios(uf) {
 function interpretar(j) {
   const s = j.s || {}, e = j.e || {}, v = j.v || {};
   const cands = [];
-  (function andar(o) {
-    if (Array.isArray(o)) return o.forEach(andar);
+  (function andar(o, partido) {
+    if (Array.isArray(o)) return o.forEach((x) => andar(x, partido));
     if (!o || typeof o !== "object") return;
-    if ("vap" in o && (o.nm || o.n)) { cands.push(o); return; }
-    Object.values(o).forEach(andar);
-  })(j.carg || j.cand || j);
+    if ("vap" in o && (o.nm || o.nmu || o.n)) { cands.push(Object.assign({ _sg: partido }, o)); return; }
+    const sg = Array.isArray(o.cand) && o.sg ? o.sg : partido;
+    Object.values(o).forEach((x) => andar(x, sg));
+  })(j.carg || j.cand || j, "");
   const lista = cands.map((c) => ({
-    nome: c.nm || c.nmu || ("Nº " + c.n),
+    nome: c.nmu || c.nm || ("Nº " + c.n),
     numero: c.n,
-    partido: c.cc || c.sg || "",
+    partido: c._sg || c.sg || c.cc || "",
     votos: num(c.vap),
-    pct: pctNum(c.pvap),
+    pct: pctNum(c.pvapn != null && c.pvapn !== "" ? c.pvapn : c.pvap),
     eleito: c.e === "s" || /^eleito/i.test(String(c.st || "")),
     sq: c.sqcand,
   })).sort((a, b) => (b.votos ?? 0) - (a.votos ?? 0));
@@ -562,7 +595,7 @@ async function atualizar() {
   est.carregando = true;
   const chave = caminhoResultado();
   try {
-    const j = await tse(chave);
+    const j = await buscarResultado(chave);
     if (chave !== caminhoResultado()) return; // usuário trocou de local no meio
     est.ultimo = interpretar(j);
     desenharResultado(est.ultimo);

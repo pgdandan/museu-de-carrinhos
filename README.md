@@ -74,6 +74,12 @@ acompanha a apuração do 2º turno com os dados públicos do TSE
 (resultados.tse.jus.br), filtrando por estado e cidade, para Presidente e
 Governador. Atualiza sozinho a cada 30 s e mantém a tela acesa.
 
+Em 2026 o TSE publica o resultado unificado em
+`ele2026/{eleição}/dados/{uf}/{uf}[município]-c{cargo}-e{eleição}-u.json`
+(até 2024 era `dados-simplificados/…-r.json`, que agora dá 404). O 2º turno
+federal é a eleição **6258**; o código da estadual vem de
+`comum/config/ele-c.json`, lido na abertura do painel.
+
 `api/tse.js` repassa os JSON do TSE com cache de 15 s na borda — vários
 painéis abertos não sobrecarregam o TSE e o navegador não esbarra em CORS.
 Se o arquivo for aberto direto (sem servidor), o painel consulta o TSE

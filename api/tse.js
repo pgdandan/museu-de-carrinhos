@@ -6,8 +6,11 @@
 const BASE = "https://resultados.tse.jus.br/oficial/";
 
 // só os arquivos de resultado e configuração — nada além disso passa
-const PERMITIDO =
-  /^(comum\/config\/ele-c\.json|ele\d{4}\/\d{1,6}\/(dados-simplificados|config)\/[a-z0-9\/_-]{1,80}\.json)$/;
+const PERMITIDO = new RegExp(
+  "^(comum/config/ele-c\\.json" +
+    "|ele\\d{4}/\\d{1,6}/(dados|dados-simplificados|config)/[a-z0-9/_-]{1,80}\\.json" +
+    "|ele\\d{4}/arquivo-urna/\\d{1,6}/config/[a-z]{2}/[a-z0-9_-]{1,40}\\.json)$"
+);
 
 export default async function handler(req, res) {
   const caminho = String(req.query.p || "");
