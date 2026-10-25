@@ -7,6 +7,15 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Apuração 2º Turno</title>
+<meta name="description" content="A apuração do 2º turno começa às 17h. Acompanhe ao vivo, estado por estado, com os dados oficiais do TSE.">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:url" content="https://seuimposto.com/#presidente">
+<meta property="og:title" content="Lula × Flávio: apuração do 2º turno ao vivo">
+<meta property="og:description" content="A apuração do 2º turno começa às 17h. Acompanhe ao vivo, estado por estado.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Lula × Flávio: apuração do 2º turno ao vivo">
+<meta name="twitter:description" content="A apuração do 2º turno começa às 17h. Acompanhe ao vivo, estado por estado.">
 <style>
 :root {
   --fundo: #0b1220;
@@ -181,6 +190,7 @@ dialog p { color: var(--suave); font-size: 15px; margin: 8px 0; }
     </div>
     <button class="icone" id="btAtualizar" title="Atualizar agora">⟳</button>
     <button class="icone" id="btTela" title="Tela cheia">⛶</button>
+    <button class="icone" id="btCompartilhar" title="Compartilhar">↗</button>
     <button class="icone" id="btConfig" title="Configurações">⚙</button>
   </header>
 
@@ -603,7 +613,9 @@ async function atualizar() {
     desenharResultado(est.ultimo);
   } catch (e) {
     if (chave !== caminhoResultado()) return;
-    if (e.message === "nao-encontrado") {
+    if (e.message === "nao-encontrado" && antesDaApuracao()) {
+      aviso("A apuração começa às 17h", "Horário de Brasília. O painel mostra os números sozinho assim que o TSE publicar.");
+    } else if (e.message === "nao-encontrado") {
       aviso(est.cargo === "gov" ? "Sem 2º turno para governador aqui" : "Resultado ainda não publicado",
         est.cargo === "gov"
           ? "Este estado não tem 2º turno para governador, ou o TSE ainda não publicou os dados."
@@ -635,9 +647,69 @@ setInterval(() => {
   $("anelProg").setAttribute("stroke-dashoffset", String(113 * (1 - falta / ms)));
 }, 250);
 
+// antes das 17h de Brasília do dia do 2º turno ainda não há arquivo no TSE
+function antesDaApuracao() {
+  const partes = Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", hourCycle: "h23",
+  }).formatToParts(new Date()).map((x) => [x.type, x.value]));
+  const hoje = `${partes.year}-${partes.month}-${partes.day}`;
+  return hoje < "2026-10-25" || (hoje === "2026-10-25" && Number(partes.hour) < 17);
+}
+
+// ---------- endereço (#presidente, #presidente/sp, #presidente/sp/62910, #governador/sp) ----------
+function hashAtual() {
+  const partes = [est.cargo === "gov" ? "governador" : "presidente"];
+  if (est.uf) partes.push(est.uf.toLowerCase());
+  if (est.uf && est.mun) partes.push(est.mun.cd);
+  return "#" + partes.join("/");
+}
+function gravarHash() {
+  if (location.hash !== hashAtual()) history.replaceState(null, "", hashAtual());
+}
+// devolve true se o endereço trouxe um local
+async function lerHash() {
+  const [cargo, uf, mun] = decodeURIComponent(location.hash.slice(1)).toLowerCase().split("/");
+  if (cargo !== "presidente" && cargo !== "governador") return false;
+  est.cargo = cargo === "governador" ? "gov" : "pres";
+  $("btPres").classList.toggle("ativo", est.cargo === "pres");
+  $("btGov").classList.toggle("ativo", est.cargo === "gov");
+  const sigla = (uf || "").toUpperCase();
+  est.uf = NOME_UF[sigla] ? sigla : null;
+  est.mun = null;
+  if (est.uf && mun) {
+    try {
+      const lista = await carregarMunicipios(est.uf);
+      est.mun = lista.find((m) => Number(m.cd) === Number(mun)) || null;
+    } catch {}
+  }
+  return true;
+}
+window.addEventListener("hashchange", async () => {
+  if (location.hash === hashAtual()) return;
+  if (await lerHash()) { mudouLocal(); desenharCidades(); }
+});
+
+const SITE = "https://seuimposto.com/";
+$("btCompartilhar").addEventListener("click", async () => {
+  const base = location.protocol.startsWith("http") ? location.origin + location.pathname : SITE;
+  const url = base + hashAtual();
+  const texto = "Lula × Flávio. A apuração do 2º turno começa às 17h.\nAcompanhe ao vivo, estado por estado:";
+  try {
+    if (navigator.share) { await navigator.share({ title: "Apuração 2º turno", text: texto, url }); return; }
+  } catch (e) { if (e.name === "AbortError") return; }
+  try {
+    await navigator.clipboard.writeText(texto + " " + url);
+    $("btCompartilhar").textContent = "✓";
+    setTimeout(() => { $("btCompartilhar").textContent = "↗"; }, 2000);
+  } catch {
+    prompt("Copie o link:", url);
+  }
+});
+
 function mudouLocal() {
   est.ultimo = null;
   salvar();
+  gravarHash();
   desenharUFs();
   desenharTrilha();
   aviso("Carregando…", nomeLocal());
@@ -773,6 +845,8 @@ $("cfDemo").addEventListener("click", () => {
   if (!cfg.demo) {
     try { await detectarEleicoes(); } catch { /* usa os códigos já salvos */ }
   }
+  if (await lerHash()) { desenharUFs(); desenharTrilha(); }
+  gravarHash();
   desenharCidades();
   atualizar();
 })();
